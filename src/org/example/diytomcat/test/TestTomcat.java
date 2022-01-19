@@ -24,7 +24,13 @@ public class TestTomcat {
     @Test
     public void testHelloTomcat() {
         String html = getContentString("/");
-        Assert.assertEquals(html, "Hello DIY Tomcat from example.org.");
+        Assert.assertEquals(html, "Hello DIY Tomcat from example.org");
+    }
+
+    @Test
+    public void testaHtml() {
+        String html = getContentString("/a.html");
+        Assert.assertEquals(html,"Hello DIY Tomcat from a.html");
     }
 
     private String getContentString(String uri) {
