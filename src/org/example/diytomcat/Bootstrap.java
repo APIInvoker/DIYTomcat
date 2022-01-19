@@ -1,8 +1,8 @@
 package org.example.diytomcat;
 
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.thread.ThreadUtil;
 import cn.hutool.core.util.ArrayUtil;
-import cn.hutool.core.util.NetUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.log.LogFactory;
 import cn.hutool.system.SystemUtil;
@@ -17,12 +17,10 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 
 public class Bootstrap {
 
     public static void main(String[] args) {
-
         try {
             logJVM();
             int port = 18080;
@@ -56,6 +54,9 @@ public class Bootstrap {
                     if (file.exists()) {
                         String fileContent = FileUtil.readUtf8String(file);
                         response.getWriter().println(fileContent);
+                        if (fileName.equals("timeConsume.html")) {
+                            ThreadUtil.sleep(1000);
+                        }
                     } else {
                         response.getWriter().println("File Not Found");
                     }
@@ -65,7 +66,6 @@ public class Bootstrap {
             }
         } catch (IOException e) {
             LogFactory.get().error(e);
-            e.printStackTrace();
         }
 
     }
@@ -82,11 +82,8 @@ public class Bootstrap {
         infos.put("JVM Version", SystemUtil.get("java.runtime.version"));
         infos.put("JVM Vendor", SystemUtil.get("java.vm.specification.vendor"));
 
-        Set<String> keys = infos.keySet();
-        for (String key : keys) {
-            // 使用HuTool的LogFactory.get()就不用每个类都写static Logger logger = Logger.getLogger(XXX.class)了
-            LogFactory.get().info(key + ":\t\t" + infos.get(key));
-        }
+        // 使用HuTool的LogFactory.get()就不用每个类都写static Logger logger = Logger.getLogger(XXX.class)了
+        infos.keySet().forEach(key -> LogFactory.get().info(key + ":\t\t" + infos.get(key)));
     }
 
     private static void handle200(Socket s, Response response) throws IOException {

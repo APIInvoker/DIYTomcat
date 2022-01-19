@@ -1,10 +1,16 @@
 package org.example.diytomcat.test;
 
-import org.example.diytomcat.util.MiniBrowser;
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.date.TimeInterval;
 import cn.hutool.core.util.NetUtil;
+import org.example.diytomcat.util.MiniBrowser;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class TestTomcat {
     private static final int port = 18080;
@@ -30,7 +36,22 @@ public class TestTomcat {
     @Test
     public void testaHtml() {
         String html = getContentString("/a.html");
-        Assert.assertEquals(html,"Hello DIY Tomcat from a.html");
+        Assert.assertEquals(html, "Hello DIY Tomcat from a.html");
+    }
+
+    @Test
+    public void testTimeConsumeHtml() throws InterruptedException {
+        ThreadPoolExecutor threadPool = new ThreadPoolExecutor(20, 20,
+                60, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(10));
+        TimeInterval timerInterval = DateUtil.timer();
+        for (int i = 0; i < 3; i++) {
+            threadPool.execute(() -> getContentString("/timeConsume.html"));
+        }
+        threadPool.shutdown();
+        threadPool.awaitTermination(1, TimeUnit.HOURS);
+        long duration = timerInterval.intervalMs();
+        Assert.assertTrue(duration > 3000);
     }
 
     private String getContentString(String uri) {
