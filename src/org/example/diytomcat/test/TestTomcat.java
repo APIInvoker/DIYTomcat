@@ -34,7 +34,7 @@ public class TestTomcat {
     }
 
     @Test
-    public void testaHtml() {
+    public void testHtml() {
         String html = getContentString("/a.html");
         Assert.assertEquals(html, "Hello DIY Tomcat from a.html");
     }
@@ -51,7 +51,7 @@ public class TestTomcat {
         threadPool.shutdown();
         threadPool.awaitTermination(1, TimeUnit.HOURS);
         long duration = timerInterval.intervalMs();
-        Assert.assertTrue(duration > 3000);
+        Assert.assertTrue(duration < 3000);
     }
 
     private String getContentString(String uri) {

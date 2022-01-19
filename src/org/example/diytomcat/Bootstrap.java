@@ -9,6 +9,7 @@ import cn.hutool.system.SystemUtil;
 import org.example.diytomcat.http.Request;
 import org.example.diytomcat.http.Response;
 import org.example.diytomcat.util.Constant;
+import org.example.diytomcat.util.ThreadPoolUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,40 +35,41 @@ public class Bootstrap {
             // noinspection InfiniteLoopStatement
             while (true) {
                 Socket s = ss.accept();
-                Request request = new Request(s);
-                System.out.println("浏览器的输入信息： \r\n" + request.getRequestString());
-                System.out.println("uri:" + request.getUri());
-
-                Response response = new Response();
-
-                String uri = request.getUri();
-                if (null == uri) {
-                    continue;
-                }
-
-                if ("/".equals(uri)) {
-                    String html = "Hello DIY Tomcat from example.org";
-                    response.getWriter().println(html);
-                } else {
-                    String fileName = StrUtil.removePrefix(uri, "/");
-                    File file = FileUtil.file(Constant.ROOT_FOLDER, fileName);
-                    if (file.exists()) {
-                        String fileContent = FileUtil.readUtf8String(file);
-                        response.getWriter().println(fileContent);
-                        if (fileName.equals("timeConsume.html")) {
-                            ThreadUtil.sleep(1000);
+                Runnable runnable = () -> {
+                    try {
+                        Request request = new Request(s);
+                        Response response = new Response();
+                        String uri = request.getUri();
+                        if (null == uri) {
+                            return;
                         }
-                    } else {
-                        response.getWriter().println("File Not Found");
+                        System.out.println(uri);
+                        if ("/".equals(uri)) {
+                            String html = "Hello DIY Tomcat from example.org";
+                            response.getWriter().println(html);
+                        } else {
+                            String fileName = StrUtil.removePrefix(uri, "/");
+                            File file = FileUtil.file(Constant.ROOT_FOLDER, fileName);
+                            if (file.exists()) {
+                                String fileContent = FileUtil.readUtf8String(file);
+                                response.getWriter().println(fileContent);
+                                if (fileName.equals("timeConsume.html")) {
+                                    ThreadUtil.sleep(1000);
+                                }
+                            } else {
+                                response.getWriter().println("File Not Found");
+                            }
+                        }
+                        handle200(s, response);
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
-                }
-
-                handle200(s, response);
+                };
+                ThreadPoolUtil.run(runnable);
             }
         } catch (IOException e) {
             LogFactory.get().error(e);
         }
-
     }
 
     private static void logJVM() {
