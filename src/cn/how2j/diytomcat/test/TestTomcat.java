@@ -1,9 +1,9 @@
-package org.example.diytomcat.test;
+package cn.how2j.diytomcat.test;
 
+import cn.how2j.diytomcat.util.MiniBrowser;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.date.TimeInterval;
 import cn.hutool.core.util.NetUtil;
-import org.example.diytomcat.util.MiniBrowser;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -13,8 +13,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public class TestTomcat {
-    private static final int port = 18080;
-    private static final String ip = "127.0.0.1";
+    private static int port = 18080;
+    private static String ip = "127.0.0.1";
 
     @BeforeClass
     public static void beforeClass() {
@@ -30,7 +30,7 @@ public class TestTomcat {
     @Test
     public void testHelloTomcat() {
         String html = getContentString("/");
-        Assert.assertEquals(html, "Hello DIY Tomcat from example.org");
+        Assert.assertEquals(html, "Hello DIY Tomcat from how2j.cn");
     }
 
     @Test
@@ -52,6 +52,12 @@ public class TestTomcat {
         threadPool.awaitTermination(1, TimeUnit.HOURS);
         long duration = timerInterval.intervalMs();
         Assert.assertTrue(duration < 3000);
+    }
+
+    @Test
+    public void testaIndex() {
+        String html = getContentString("/a/index.html");
+        Assert.assertEquals(html, "Hello DIY Tomcat from index.html@a");
     }
 
     private String getContentString(String uri) {

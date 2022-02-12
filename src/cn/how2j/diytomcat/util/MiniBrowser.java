@@ -1,13 +1,9 @@
-package org.example.diytomcat.util;
+package cn.how2j.diytomcat.util;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,7 +11,7 @@ import java.util.Set;
 
 public class MiniBrowser {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         String url = "http://static.how2j.cn/diytomcat.html";
         String contentString = getContentString(url, false);
         System.out.println(contentString);
@@ -35,7 +31,11 @@ public class MiniBrowser {
         byte[] result = getContentBytes(url, gzip);
         if (null == result)
             return null;
-        return new String(result, StandardCharsets.UTF_8).trim();
+        try {
+            return new String(result, "utf-8").trim();
+        } catch (UnsupportedEncodingException e) {
+            return null;
+        }
     }
 
     public static byte[] getContentBytes(String url, boolean gzip) {
@@ -56,7 +56,8 @@ public class MiniBrowser {
 
         pos += doubleReturn.length;
 
-        return Arrays.copyOfRange(response, pos, response.length);
+        byte[] result = Arrays.copyOfRange(response, pos, response.length);
+        return result;
     }
 
     public static String getHttpString(String url, boolean gzip) {
@@ -69,7 +70,7 @@ public class MiniBrowser {
     }
 
     public static byte[] getHttpBytes(String url, boolean gzip) {
-        byte[] result;
+        byte[] result = null;
         try {
             URL u = new URL(url);
             Socket client = new Socket();
@@ -83,7 +84,7 @@ public class MiniBrowser {
             requestHeaders.put("Host", u.getHost() + ":" + port);
             requestHeaders.put("Accept", "text/html");
             requestHeaders.put("Connection", "close");
-            requestHeaders.put("User-Agent", "Example mini browser / Java17");
+            requestHeaders.put("User-Agent", "how2j mini brower / java1.8");
 
             if (gzip)
                 requestHeaders.put("Accept-Encoding", "gzip");
@@ -105,11 +106,16 @@ public class MiniBrowser {
             PrintWriter pWriter = new PrintWriter(client.getOutputStream(), true);
             pWriter.println(httpRequestString);
             InputStream is = client.getInputStream();
+
             result = readBytes(is);
             client.close();
         } catch (Exception e) {
             e.printStackTrace();
-            result = e.toString().getBytes(StandardCharsets.UTF_8);
+            try {
+                result = e.toString().getBytes("utf-8");
+            } catch (UnsupportedEncodingException e1) {
+                e1.printStackTrace();
+            }
         }
 
         return result;
@@ -118,7 +124,7 @@ public class MiniBrowser {
 
     public static byte[] readBytes(InputStream is) throws IOException {
         int buffer_size = 1024;
-        byte[] buffer = new byte[buffer_size];
+        byte buffer[] = new byte[buffer_size];
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         while (true) {
             int length = is.read(buffer);
@@ -128,6 +134,7 @@ public class MiniBrowser {
             if (length != buffer_size)
                 break;
         }
-        return baos.toByteArray();
+        byte[] result = baos.toByteArray();
+        return result;
     }
 }

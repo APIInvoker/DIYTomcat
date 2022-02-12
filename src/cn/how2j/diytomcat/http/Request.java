@@ -1,17 +1,20 @@
-package org.example.diytomcat.http;
+package cn.how2j.diytomcat.http;
 
+import cn.how2j.diytomcat.Bootstrap;
+import cn.how2j.diytomcat.catalina.Context;
+import cn.how2j.diytomcat.util.MiniBrowser;
 import cn.hutool.core.util.StrUtil;
-import org.example.diytomcat.util.MiniBrowser;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 
 public class Request {
+
     private String requestString;
     private String uri;
-    private final Socket socket;
+    private Socket socket;
+    private Context context;
 
     public Request(Socket socket) throws IOException {
         this.socket = socket;
@@ -19,12 +22,28 @@ public class Request {
         if (StrUtil.isEmpty(requestString))
             return;
         parseUri();
+        parseContext();
+        if (!"/".equals(context.getPath()))
+            uri = StrUtil.removePrefix(uri, context.getPath());
+
+    }
+
+    private void parseContext() {
+        String path = StrUtil.subBetween(uri, "/", "/");
+        if (null == path)
+            path = "/";
+        else
+            path = "/" + path;
+
+        context = Bootstrap.contextMap.get(path);
+        if (null == context)
+            context = Bootstrap.contextMap.get("/");
     }
 
     private void parseHttpRequest() throws IOException {
         InputStream is = this.socket.getInputStream();
         byte[] bytes = MiniBrowser.readBytes(is);
-        requestString = new String(bytes, StandardCharsets.UTF_8);
+        requestString = new String(bytes, "utf-8");
     }
 
     private void parseUri() {
@@ -39,6 +58,10 @@ public class Request {
         uri = temp;
     }
 
+    public Context getContext() {
+        return context;
+    }
+
     public String getUri() {
         return uri;
     }
@@ -46,4 +69,5 @@ public class Request {
     public String getRequestString() {
         return requestString;
     }
+
 }

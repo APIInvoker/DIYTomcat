@@ -1,61 +1,67 @@
-package org.example.diytomcat;
+package cn.how2j.diytomcat;
 
+import cn.how2j.diytomcat.catalina.Context;
+import cn.how2j.diytomcat.http.Request;
+import cn.how2j.diytomcat.http.Response;
+import cn.how2j.diytomcat.util.Constant;
+import cn.how2j.diytomcat.util.ThreadPoolUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.thread.ThreadUtil;
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.log.LogFactory;
 import cn.hutool.system.SystemUtil;
-import org.example.diytomcat.http.Request;
-import org.example.diytomcat.http.Response;
-import org.example.diytomcat.util.Constant;
-import org.example.diytomcat.util.ThreadPoolUtil;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class Bootstrap {
+    public static Map<String, Context> contextMap = new HashMap<>();
 
     public static void main(String[] args) {
         try {
             logJVM();
+
+            scanContextsOnWebAppsFolder();
+
             int port = 18080;
 
-//            if (!NetUtil.isUsableLocalPort(port)) {
-//                System.out.println(port + "端口已经被占用了，排查并关闭本端口的办法请用：\r\nhttps://how2j.cn/k/tomcat/tomcat-portfix/545.html");
-//                return;
-//            }
             ServerSocket ss = new ServerSocket(port);
 
-            // noinspection InfiniteLoopStatement
             while (true) {
                 Socket s = ss.accept();
-                Runnable runnable = () -> {
+                Runnable r = () -> {
                     try {
                         Request request = new Request(s);
                         Response response = new Response();
                         String uri = request.getUri();
-                        if (null == uri) {
+                        if (null == uri)
                             return;
-                        }
-                        System.out.println(uri);
+                        System.out.println("uri:" + uri);
+
+                        Context context = request.getContext();
+
                         if ("/".equals(uri)) {
-                            String html = "Hello DIY Tomcat from example.org";
+                            String html = "Hello DIY Tomcat from how2j.cn";
                             response.getWriter().println(html);
                         } else {
                             String fileName = StrUtil.removePrefix(uri, "/");
-                            File file = FileUtil.file(Constant.ROOT_FOLDER, fileName);
+                            File file = FileUtil.file(context.getDocBase(), fileName);
                             if (file.exists()) {
                                 String fileContent = FileUtil.readUtf8String(file);
                                 response.getWriter().println(fileContent);
+
                                 if (fileName.equals("timeConsume.html")) {
                                     ThreadUtil.sleep(1000);
                                 }
+
                             } else {
                                 response.getWriter().println("File Not Found");
                             }
@@ -65,17 +71,43 @@ public class Bootstrap {
                         e.printStackTrace();
                     }
                 };
-                ThreadPoolUtil.run(runnable);
+
+                ThreadPoolUtil.run(r);
+
             }
         } catch (IOException e) {
             LogFactory.get().error(e);
+            e.printStackTrace();
         }
+
+    }
+
+    private static void scanContextsOnWebAppsFolder() {
+        File[] folders = Constant.webappsFolder.listFiles();
+        for (File folder : folders) {
+            if (!folder.isDirectory())
+                continue;
+            loadContext(folder);
+        }
+    }
+
+    private static void loadContext(File folder) {
+        String path = folder.getName();
+        if ("ROOT".equals(path))
+            path = "/";
+        else
+            path = "/" + path;
+
+        String docBase = folder.getAbsolutePath();
+        Context context = new Context(path, docBase);
+
+        contextMap.put(context.getPath(), context);
     }
 
     private static void logJVM() {
         Map<String, String> infos = new LinkedHashMap<>();
-        infos.put("Server version", "Example DIYTomcat/1.0.0");
-        infos.put("Server built", "2022-01-19 14:43:30");
+        infos.put("Server version", "How2J DiyTomcat/1.0.1");
+        infos.put("Server built", "2020-04-08 10:20:22");
         infos.put("Server number", "1.0.1");
         infos.put("OS Name\t", SystemUtil.get("os.name"));
         infos.put("OS Version", SystemUtil.get("os.version"));
@@ -84,13 +116,15 @@ public class Bootstrap {
         infos.put("JVM Version", SystemUtil.get("java.runtime.version"));
         infos.put("JVM Vendor", SystemUtil.get("java.vm.specification.vendor"));
 
-        // 使用HuTool的LogFactory.get()就不用每个类都写static Logger logger = Logger.getLogger(XXX.class)了
-        infos.keySet().forEach(key -> LogFactory.get().info(key + ":\t\t" + infos.get(key)));
+        Set<String> keys = infos.keySet();
+        for (String key : keys) {
+            LogFactory.get().info(key + ":\t\t" + infos.get(key));
+        }
     }
 
     private static void handle200(Socket s, Response response) throws IOException {
         String contentType = response.getContentType();
-        String headText = Constant.RESPONSE_HEAD_202;
+        String headText = Constant.response_head_202;
         headText = StrUtil.format(headText, contentType);
         byte[] head = headText.getBytes();
 
