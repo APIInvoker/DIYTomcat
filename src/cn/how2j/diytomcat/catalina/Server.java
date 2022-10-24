@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -37,9 +38,8 @@ public class Server {
     }
 
     private void init() {
-        try {
-            int port = 18080;
-            ServerSocket ss = new ServerSocket(port);
+        int port = 18080;
+        try (ServerSocket ss = new ServerSocket(port);) {
             while (true) {
                 Socket s = ss.accept();
                 Runnable r = () -> {
@@ -64,12 +64,20 @@ public class Server {
                                     ThreadUtil.sleep(1000);
                                 }
                             } else {
-                                response.getWriter().println("File Not Found");
+                                handle404(s, uri);
+                                return;
                             }
                         }
                         handle200(s, response);
                     } catch (IOException e) {
                         e.printStackTrace();
+                    } finally {
+                        try {
+                            if (!s.isClosed())
+                                s.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                 };
                 ThreadPoolUtil.run(r);
@@ -110,6 +118,13 @@ public class Server {
 
         OutputStream os = s.getOutputStream();
         os.write(responseBytes);
-        s.close();
+    }
+
+    protected void handle404(Socket s, String uri) throws IOException {
+        OutputStream os = s.getOutputStream();
+        String responseText = StrUtil.format(Constant.textFormat_404, uri, uri);
+        responseText = Constant.response_head_404 + responseText;
+        byte[] responseByte = responseText.getBytes(StandardCharsets.UTF_8);
+        os.write(responseByte);
     }
 }
