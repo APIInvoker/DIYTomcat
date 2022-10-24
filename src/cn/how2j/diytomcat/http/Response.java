@@ -2,13 +2,12 @@ package cn.how2j.diytomcat.http;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 
 public class Response {
-    private final StringWriter stringWriter;
-    private final PrintWriter writer;
-    private final String contentType;
+    private StringWriter stringWriter;
+    private PrintWriter writer;
+    private String contentType;
 
     public Response() {
         this.stringWriter = new StringWriter();
@@ -24,8 +23,9 @@ public class Response {
         return writer;
     }
 
-    public byte[] getBody() throws UnsupportedEncodingException {
+    public byte[] getBody() {
         String content = stringWriter.toString();
         return content.getBytes(StandardCharsets.UTF_8);
     }
+
 }

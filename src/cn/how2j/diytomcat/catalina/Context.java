@@ -4,8 +4,21 @@ import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.date.TimeInterval;
 import cn.hutool.log.LogFactory;
 
+/**
+ * 代表一个应用
+ *
+ * @author Zheng Xin
+ * @since 2022/10/10
+ */
 public class Context {
+    /**
+     * 表示访问的路径
+     */
     private String path;
+
+    /**
+     * 表示对应在文件系统中的位置
+     */
     private String docBase;
 
     public Context(String path, String docBase) {
