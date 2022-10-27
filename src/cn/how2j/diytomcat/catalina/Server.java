@@ -26,7 +26,7 @@ import java.util.Set;
  * @since 2022/10/24
  */
 public class Server {
-    private Service service;
+    private final Service service;
 
     public Server() {
         this.service = new Service(this);
@@ -37,9 +37,10 @@ public class Server {
         init();
     }
 
+    @SuppressWarnings("all")
     private void init() {
         int port = 18080;
-        try (ServerSocket ss = new ServerSocket(port);) {
+        try (ServerSocket ss = new ServerSocket(port)) {
             while (true) {
                 Socket s = ss.accept();
                 Runnable r = () -> {
@@ -51,6 +52,11 @@ public class Server {
                             return;
                         System.out.println("uri:" + uri);
                         Context context = request.getContext();
+
+                        if("/500.html".equals(uri)){
+                            throw new Exception("This is a deliberately created exception");
+                        }
+
                         if ("/".equals(uri)) {
                             String html = "Hello DIY Tomcat from how2j.cn";
                             response.getWriter().println(html);
@@ -69,8 +75,9 @@ public class Server {
                             }
                         }
                         handle200(s, response);
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                    } catch (Exception e) {
+                        LogFactory.get().error(e);
+                        handle500(s, e);
                     } finally {
                         try {
                             if (!s.isClosed())
@@ -126,5 +133,32 @@ public class Server {
         responseText = Constant.response_head_404 + responseText;
         byte[] responseByte = responseText.getBytes(StandardCharsets.UTF_8);
         os.write(responseByte);
+    }
+
+    protected void handle500(Socket s, Exception e) {
+        try {
+            OutputStream os = s.getOutputStream();
+            StackTraceElement[] stes = e.getStackTrace();
+            StringBuilder sb = new StringBuilder();
+            sb.append(e);
+            sb.append("\r\n");
+            for (StackTraceElement ste : stes) {
+                sb.append("\t");
+                sb.append(ste.toString());
+                sb.append("\r\n");
+            }
+
+            String msg = e.getMessage();
+
+            if (null != msg && msg.length() > 20)
+                msg = msg.substring(0, 19);
+
+            String text = StrUtil.format(Constant.textFormat_500, msg, e.toString(), sb.toString());
+            text = Constant.response_head_500 + text;
+            byte[] responseBytes = text.getBytes(StandardCharsets.UTF_8);
+            os.write(responseBytes);
+        } catch (IOException e1) {
+            e1.printStackTrace();
+        }
     }
 }
